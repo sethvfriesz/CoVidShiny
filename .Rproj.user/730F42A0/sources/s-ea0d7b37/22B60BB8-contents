@@ -1,0 +1,163 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r warning=FALSE, ECHO=FALSE}
+library(maps)
+library(plotly)
+library(tidyverse)
+```
+ 
+
+ 
+ 
+
+```{r}
+US_counties = read.csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv')
+
+x = US_counties[2,1]
+as.character(substr(x, 4, 8))
+length(US_counties$UID)
+for (x in 1:length(US_counties$UID)){
+  US_counties[x,5] = as.character(substr(US_counties[x,1], 4, 8))
+}
+
+US_counties[2586,6] = "Shannon"
+US_counties[87,6] = "Wade Hampton"
+
+US_counties[2586,5] ='46113'
+US_counties[87,5]  = '02270'
+```
+
+
+```{r}
+x = US_counties[2,1]
+as.character(substr(x, 4, 8))
+length(US_counties$UID)
+for (x in 1:length(US_counties$UID)){
+  US_counties[x,5] = as.character(substr(US_counties[x,1], 4, 8))
+}
+```
+
+
+```{r}
+fig <- plot_ly(y = ~US_counties$X9.20.20, type = "box")
+fig
+upper_fence = (quantile(US_counties$X9.20.20)[4]) + (1.5*((quantile(US_counties$X9.20.20)[4])-(quantile(US_counties$X9.20.20)[2])))
+upper_fence
+```
+
+
+
+```{r warning = FALSE, echo=FALSE}
+
+fig <- plot_ly(data = US_counties, x = ~US_counties$Long_, 
+               y = ~US_counties$Lat,
+               color = US_counties$Province_State,
+               size = ~(US_counties$X3.20.21)*1000, 
+               type = 'scatter',
+              mode = 'markers',
+              text = ~paste(US_counties$Combined_Key,'infection count:',US_counties$X9.4.21))
+
+
+fig 
+```
+
+
+```{r}
+library(plotly)
+library(rjson)
+
+url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+counties <- rjson::fromJSON(file=url)
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('blue')
+)
+fig <- plot_ly(
+  text = ~paste(US_counties$Combined_Key,'infection count:',US_counties$X9.4.21)
+)
+fig <- fig %>% add_trace(
+    type="choropleth",
+    geojson=counties,
+    locations=US_counties$FIPS,
+    z=US_counties$X9.20.20,
+    colorscale="heat",
+    zmin=min(US_counties$X9.20.20),
+    zmax=(quantile(US_counties$X9.20.20)[4]) + (6*((quantile(US_counties$X9.20.20)[4])-(quantile(US_counties$X9.20.20)[2]))),
+    marker=list(line=list(
+      width=0)
+    
+    )
+  )
+fig <- fig %>% colorbar(title = "Total Number of COVID-19 infections")
+fig <- fig %>% layout(
+   title = "COVID-19 infections by county on "
+)
+
+fig <- fig %>% layout(
+    geo = g
+  )
+
+
+fig
+```
+```{r}
+
+
+```
+```{r}
+library(plotly)
+library(rjson)
+
+url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+counties <- rjson::fromJSON(file=url)
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('blue')
+)
+plot_ly(text = ~paste(US_counties$Combined_Key,'infection count:',US_counties$X9.4.21)) %>%
+  add_trace(
+    type="choropleth",
+    geojson=counties,
+    locations=US_counties$FIPS,
+    z=US_counties$X9.20.20,
+    colorscale="heat",
+    zmin=min(US_counties$X9.20.20),
+    zmax=(quantile(US_counties$X9.20.20)[4]) + (6*((quantile(US_counties$X9.20.20)[4])-(quantile(US_counties$X9.20.20)[2]))),
+    marker=list(line=list(
+      width=0)
+    
+    )
+  ) %>% 
+  colorbar(title = "Total Number of COVID-19 infections") %>%
+  layout(
+   title = "COVID-19 infections by county on "
+) %>%
+  layout(
+    geo = g
+  )
+
+```
+
+
+
+
+
+```{r}
+US_counties_dates <- US_counties[,c(12:ncol(US_counties))]
+
+USC_colnames = colnames(US_counties_dates)
+USC_colnames[length(USC_colnames)]
+
+```
+
+
+```{r}
+
+
+```
