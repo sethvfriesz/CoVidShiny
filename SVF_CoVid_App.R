@@ -5,6 +5,8 @@ library(tidyverse)
 library(ggplot2)
 library(anytime)
 library(shinyWidgets)
+library(shinybusy)
+library(shinysky)
 
 
 US_counties = read.csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv')
@@ -25,8 +27,8 @@ US_counties[87,6] = "Wade Hampton"
 US_counties[2586,5] ='46113'
 US_counties[87,5]  = '02270'
 US_counties_dates <- US_counties[,c(12:ncol(US_counties))]
-url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
-counties <- rjson::fromJSON(file=url)
+#url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+#counties <- rjson::fromJSON(file=url)
 # g <- list(
 #   scope = 'usa',
 #   projection = list(type = 'albers usa'),
@@ -68,6 +70,37 @@ for (x in unique(states_longer$State)){
 
 states_longer$per_hundred_thousand = (states_longer$overall / (states_longer$state_population/100000))
 
+
+# ##############US_country plot Function#######################
+# testing <- function(US_counties, date) {
+#   plot_ly(text = ~paste(US_counties$Combined_Key,'infection count:',US_counties[,date])) %>%
+#     add_trace(
+#       type="choropleth",
+#       geojson=rjson::fromJSON(file='https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'),
+#       locations=US_counties$FIPS,
+#       z=US_counties[,date],
+#       colorscale="heat",
+#       zmin= min(US_counties[,date]),
+#       zmax=(quantile(US_counties[,date])[4]) + (6*((quantile(US_counties[,date])[4])-(quantile(US_counties[,date])[2]))), 
+#       marker=list(line=list(
+#         width=0)
+#         
+#       )
+#     ) %>% 
+#     colorbar(title = "Total Number of COVID-19 infections") %>%
+#     layout(
+#       geo = list(
+#         scope = 'usa',
+#         projection = list(type = 'albers usa'),
+#         showlakes = TRUE,
+#         lakecolor = toRGB('blue')
+#       )
+#     )
+# }
+
+
+
+
 ################################################################
 
 ui <- navbarPage(
@@ -79,6 +112,8 @@ ui <- navbarPage(
         selectInput('date','Please select a date:', choices = colnames(US_counties_dates))
       ),
       mainPanel(
+        shinysky::busyIndicator(text = "Give me a sec brudda", wait = 5 ),
+        #add_busy_spinner(spin = "fading-circle"),
         h1("CoVid-19 since patient zero across the U.S."),
         plotlyOutput(outputId = "p", height = "900px")
       )
@@ -113,11 +148,12 @@ ui <- navbarPage(
 )
 
 server <- function(input, output, session) {
+  
   output$p <- renderPlotly({
     plot_ly(text = ~paste(US_counties$Combined_Key,'infection count:',US_counties[,input$date])) %>%
       add_trace(
         type="choropleth",
-        geojson=counties,
+        geojson=rjson::fromJSON(file='https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'),
         locations=US_counties$FIPS,
         z=US_counties[,input$date],
         colorscale="heat",
@@ -137,7 +173,6 @@ server <- function(input, output, session) {
           lakecolor = toRGB('blue')
         )
       )
-    
   })
   output$q <- renderPlot({
     if (input$measurement == "Overall infections over 2 week periods"){
