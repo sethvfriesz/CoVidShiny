@@ -72,33 +72,79 @@ states_longer$per_hundred_thousand = (states_longer$overall / (states_longer$sta
 
 
 # ##############US_country plot Function#######################
-# testing <- function(US_counties, date) {
-#   plot_ly(text = ~paste(US_counties$Combined_Key,'infection count:',US_counties[,date])) %>%
-#     add_trace(
-#       type="choropleth",
-#       geojson=rjson::fromJSON(file='https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'),
-#       locations=US_counties$FIPS,
-#       z=US_counties[,date],
-#       colorscale="heat",
-#       zmin= min(US_counties[,date]),
-#       zmax=(quantile(US_counties[,date])[4]) + (6*((quantile(US_counties[,date])[4])-(quantile(US_counties[,date])[2]))), 
-#       marker=list(line=list(
-#         width=0)
-#         
-#       )
-#     ) %>% 
-#     colorbar(title = "Total Number of COVID-19 infections") %>%
-#     layout(
-#       geo = list(
-#         scope = 'usa',
-#         projection = list(type = 'albers usa'),
-#         showlakes = TRUE,
-#         lakecolor = toRGB('blue')
-#       )
-#     )
-# }
+testing <- function(dataset, date) {
+  plotly::plot_ly(text = ~paste(US_counties$Combined_Key,'infection count:',US_counties[,date])) %>%
+    plotly::add_trace(
+      type="choropleth",
+      geojson=rjson::fromJSON(file='https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'),
+      locations=US_counties$FIPS,
+     z=US_counties[,date],
+      colorscale="heat",
+      zmin= min(US_counties[,date]),
+      zmax=(quantile(US_counties[,date])[4]) + (6*((quantile(US_counties[,date])[4])-(quantile(US_counties[,date])[2]))),
+      marker=list(line=list(
+        width=0)
+
+      )
+    ) %>%
+    colorbar(title = "Total Number of COVID-19 infections") %>%
+    layout(
+      geo = list(
+        scope = 'usa',
+        projection = list(type = 'albers usa'),
+        showlakes = TRUE,
+       lakecolor = plotly::toRGB('blue')
+      )
+   )
+}
 
 
+
+
+###############################################################
+##################### Infections Plot##########################
+infections_plot <- function(dataset, plot_choice, states){
+  if (plot_choice == "Overall infections over 2 week periods"){
+    plotly::ggplotly(ggplot2::ggplot(
+      dataset[dataset$State %in% states,],
+      ggplot2::aes(x = date, y = overall, group = State, color = State))+
+      ggplot2::geom_line() +
+      ggplot2::labs(color = "STATES:  ") +
+      ggplot2::ylab("Overall CoVid-19 infections") +
+      ggplot2::xlab("Date")+
+      ggplot2::theme(
+        axis.text.x = ggplot2::element_text(angle = 90, size = 16),
+        axis.title.x = element_text(size = 25, face = "bold"),
+        axis.text.y = element_text(size = 16, angle = 45),
+        axis.title.y = element_text(size = 25, face = "bold"),
+        legend.key.size = unit(1,"cm"),
+        legend.text = element_text(size = 14),
+        legend.position = "bottom",
+        legend.box = "vertical",
+        legend.title = element_text(color = "black", size = 20, face = "bold")) +
+      ggplot2::scale_x_date(date_breaks = 'month' , date_labels = "%b-%y") +
+      ggplot2::guides(size = "none"))
+  }
+  else if (plot_choice == "Overall infections per 100,000 population over 2 week periods") {
+    plotly::ggplotly(ggplot2::ggplot(
+      dataset[dataset$State %in% states,],
+      ggplot2::aes(x = date, y = per_hundred_thousand, group = State, color = State))+
+      ggplot2::geom_line() +
+      ggplot2::ylab("Overall CoVid-19 infections per 100,000 population") +
+      ggplot2::xlab("Date")+
+      ggplot2::theme(axis.text.x = element_text(angle = 90, size = 16),
+        axis.title.x = element_text(size = 25, face = "bold"),
+        axis.text.y = element_text(size = 16, angle = 45),
+        axis.title.y = element_text(size = 25, face = "bold"),
+        legend.key.size = unit(1,"cm"),
+        legend.text = element_text(size = 14),
+        legend.position = "bottom",
+        legend.box = "vertical",
+        legend.title = element_text(color = "black", size = 20, face = "bold")) +
+      ggplot2::scale_x_date(date_breaks = 'month' , date_labels = "%b-%y") +
+      ggplot2::guides(size = "none"))
+  }
+}
 
 
 ################################################################
@@ -135,9 +181,10 @@ ui <- navbarPage(
                  multiple = T)
              ),
              mainPanel(
+               shinysky::busyIndicator(text = "Give me a sec brudda", wait = 5 ),
                h1("CoVid-19 infections over time by State"),
-               plotOutput(
-                 outputId = 'q',
+               plotlyOutput(
+                 outputId = 'state_plot',
                  height = "850px",
                  width = "1200px")
              )
@@ -149,73 +196,16 @@ ui <- navbarPage(
 
 server <- function(input, output, session) {
   
-  output$p <- renderPlotly({
-    plot_ly(text = ~paste(US_counties$Combined_Key,'infection count:',US_counties[,input$date])) %>%
-      add_trace(
-        type="choropleth",
-        geojson=rjson::fromJSON(file='https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'),
-        locations=US_counties$FIPS,
-        z=US_counties[,input$date],
-        colorscale="heat",
-        zmin= min(US_counties[,input$date]),
-        zmax=(quantile(US_counties[,input$date])[4]) + (6*((quantile(US_counties[,input$date])[4])-(quantile(US_counties[,input$date])[2]))), 
-        marker=list(line=list(
-          width=0)
-          
-        )
-      ) %>% 
-      colorbar(title = "Total Number of COVID-19 infections") %>%
-      layout(
-        geo = list(
-          scope = 'usa',
-          projection = list(type = 'albers usa'),
-          showlakes = TRUE,
-          lakecolor = toRGB('blue')
-        )
-      )
+  output$p <- plotly::renderPlotly({
+    dataplots = testing(
+      dataset = US_counties,
+      date = input$date)
   })
-  output$q <- renderPlot({
-    if (input$measurement == "Overall infections over 2 week periods"){
-      ggplot(
-        states_longer[states_longer$State %in% input$state,],
-        aes(x = date, y = overall, group = State, color = State)
-      ) + 
-        geom_line() +
-        labs(color = "STATES:  ") +
-        ylab("Overall CoVid-19 infections") + 
-        xlab("Date")+       
-        theme(axis.text.x = element_text(angle = 90, size = 16),
-              axis.title.x = element_text(size = 25, face = "bold"),
-              axis.text.y = element_text(size = 16, angle = 45),
-              axis.title.y = element_text(size = 25, face = "bold"),
-              legend.key.size = unit(1,"cm"),
-              legend.text = element_text(size = 14),
-              legend.position = "bottom",
-              legend.box = "vertical",
-              legend.title = element_text(color = "black", size = 20, face = "bold")) +
-        scale_x_date(date_breaks = 'month' , date_labels = "%b-%y") +
-        guides(size = "none")
-    } 
-    else if (input$measurement == "Overall infections per 100,000 population over 2 week periods") {
-      ggplot(
-        states_longer[states_longer$State %in% input$state,],
-        aes(x = date, y = per_hundred_thousand, group = State, color = State)
-      ) + 
-        geom_line() +
-        ylab("Overall CoVid-19 infections per 100,000 population") + 
-        xlab("Date")+       
-        theme(axis.text.x = element_text(angle = 90, size = 16),
-              axis.title.x = element_text(size = 25, face = "bold"),
-              axis.text.y = element_text(size = 16, angle = 45),
-              axis.title.y = element_text(size = 25, face = "bold"),
-              legend.key.size = unit(1,"cm"),
-              legend.text = element_text(size = 14),
-              legend.position = "bottom",
-              legend.box = "vertical",
-              legend.title = element_text(color = "black", size = 20, face = "bold")) +
-        scale_x_date(date_breaks = 'month' , date_labels = "%b-%y") +
-        guides(size = "none")
-    }
+  output$state_plot <- plotly::renderPlotly({
+    dataplot = infections_plot(
+      dataset = states_longer,
+      plot_choice = input$measurement,
+      states = input$state)
   })
   
 }
